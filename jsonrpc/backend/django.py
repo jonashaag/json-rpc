@@ -4,6 +4,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.conf.urls import url
 from django.conf import settings
 from django.http import HttpResponse, HttpResponseNotAllowed
+from django.utils.module_loading import import_string
 import copy
 import json
 import logging
@@ -68,7 +69,11 @@ class JSONRPCAPI(object):
                 jsonrpc_request.method, jsonrpc_request_params, t2 - t1))
 
         if response:
-            response.serialize = response_serialize
+            custom_serializer = getattr(settings, 'JSONRPC_SERIALIZER', None)
+            if custom_serializer is None:
+                response.serialize = response_serialize
+            else:
+                response.serialize = import_string(custom_serializer)
             response = response.json
 
         return HttpResponse(response, content_type="application/json")
